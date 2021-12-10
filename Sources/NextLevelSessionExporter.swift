@@ -519,17 +519,35 @@ extension NextLevelSessionExporter {
                 transform.ty -= transformedRect.origin.y;
                 
                 let correctedSize = transformedRect.size
-                videoComposition.renderSize = targetSize
                 
-                // center the video
+                if correctedSize.width > targetSize.width && correctedSize.height > targetSize.height {
+                    videoComposition.renderSize = targetSize
+                    
+                    let naturalSize = correctedSize
+                    let xRatio: CGFloat = targetSize.width / naturalSize.width
+                    let yRatio: CGFloat = targetSize.height / naturalSize.height
+                    let ratio = min(xRatio, yRatio)
+                    
+                    let postWidth = naturalSize.width * ratio
+                    let postHeight = naturalSize.height * ratio
+                    let transX = (targetSize.width - postWidth) * 0.5
+                    let transY = (targetSize.height - postHeight) * 0.5
+                    
+                    var matrix = CGAffineTransform(translationX: (transX / xRatio), y: (transY / yRatio))
+                    matrix = matrix.scaledBy(x: ratio, y: ratio)
+                    transform = transform.concatenating(matrix)
+
+                } else {
+                    videoComposition.renderSize = targetSize
+                    
+                    let xRatio: CGFloat = targetSize.width / correctedSize.width
+                    let yRatio: CGFloat = targetSize.height / correctedSize.height
+                    let ratio = max(xRatio, yRatio)
+                    
+                    transform = transform.scaledBy(x: ratio, y: ratio)
+                }
                 
-                let xRatio: CGFloat = targetSize.width / correctedSize.width
-                let yRatio: CGFloat = targetSize.height / correctedSize.height
-                let ratio = max(xRatio, yRatio)
-                
-                transform = transform.scaledBy(x: ratio, y: ratio)
                 // make the composition
-                
                 let compositionInstruction = AVMutableVideoCompositionInstruction()
                 compositionInstruction.timeRange = CMTimeRange(start: CMTime.zero, duration: asset.duration)
                 
