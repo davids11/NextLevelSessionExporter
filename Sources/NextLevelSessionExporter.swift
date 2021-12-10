@@ -525,7 +525,7 @@ extension NextLevelSessionExporter {
                     height: abs(transformedNaturalSize.height)
                 )
                 
-                videoComposition.renderSize = correctedNaturalSize
+                videoComposition.renderSize = targetSize
                 
                 // center the video
                 var ratio: CGFloat = 0
