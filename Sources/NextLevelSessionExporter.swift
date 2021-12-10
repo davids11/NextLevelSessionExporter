@@ -510,34 +510,31 @@ extension NextLevelSessionExporter {
                 let height = videoHeight!.intValue
                 
                 let targetSize = CGSize(width: width, height: height)
-                var naturalSize = videoTrack.naturalSize
-                
                 var transform = videoTrack.preferredTransform
+                let naturalSize = videoTrack.naturalSize
                 
-                let rect = CGRect(x: 0, y: 0, width: naturalSize.width, height: naturalSize.height)
+                let rect = CGRect(origin: .zero, size: naturalSize)
                 let transformedRect = rect.applying(transform)
                 // transformedRect should have origin at 0 if correct; otherwise add offset to correct it
                 transform.tx -= transformedRect.origin.x;
                 transform.ty -= transformedRect.origin.y;
                 
+                let transformedNaturalSize = naturalSize.applying(transform)
+                let correctedNaturalSize = CGSize(
+                    width: abs(transformedNaturalSize.width),
+                    height: abs(transformedNaturalSize.height)
+                )
                 
-                let videoAngleInDegrees = atan2(transform.b, transform.a) * 180 / .pi
-                if videoAngleInDegrees == 90 || videoAngleInDegrees == -90 {
-                    let tempWidth = naturalSize.width
-                    naturalSize.width = naturalSize.height
-                    naturalSize.height = tempWidth
-                }
-                videoComposition.renderSize = naturalSize
+                videoComposition.renderSize = correctedNaturalSize
                 
                 // center the video
-                
                 var ratio: CGFloat = 0
-                let xRatio: CGFloat = targetSize.width / naturalSize.width
-                let yRatio: CGFloat = targetSize.height / naturalSize.height
+                let xRatio: CGFloat = targetSize.width / correctedNaturalSize.width
+                let yRatio: CGFloat = targetSize.height / correctedNaturalSize.height
                 ratio = min(xRatio, yRatio)
                 
-                let postWidth = naturalSize.width * ratio
-                let postHeight = naturalSize.height * ratio
+                let postWidth = correctedNaturalSize.width * ratio
+                let postHeight = correctedNaturalSize.height * ratio
                 let transX = (targetSize.width - postWidth) * 0.5
                 let transY = (targetSize.height - postHeight) * 0.5
                 
