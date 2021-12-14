@@ -510,40 +510,8 @@ extension NextLevelSessionExporter {
                 let height = videoHeight!.intValue
                 
                 let targetSize = CGSize(width: width, height: height)
-                var naturalSize = videoTrack.naturalSize
                 
-                var transform = videoTrack.preferredTransform
-                
-                let rect = CGRect(x: 0, y: 0, width: naturalSize.width, height: naturalSize.height)
-                let transformedRect = rect.applying(transform)
-                // transformedRect should have origin at 0 if correct; otherwise add offset to correct it
-                transform.tx -= transformedRect.origin.x;
-                transform.ty -= transformedRect.origin.y;
-                
-                
-                let videoAngleInDegrees = atan2(transform.b, transform.a) * 180 / .pi
-                if videoAngleInDegrees == 90 || videoAngleInDegrees == -90 {
-                    let tempWidth = naturalSize.width
-                    naturalSize.width = naturalSize.height
-                    naturalSize.height = tempWidth
-                }
                 videoComposition.renderSize = targetSize
-                
-                // center the video
-                
-                var ratio: CGFloat = 0
-                let xRatio: CGFloat = targetSize.width / naturalSize.width
-                let yRatio: CGFloat = targetSize.height / naturalSize.height
-                ratio = max(xRatio, yRatio)
-                
-                let postWidth = naturalSize.width * ratio
-                let postHeight = naturalSize.height * ratio
-                let transX = (targetSize.width - postWidth) * 0.5
-                let transY = (targetSize.height - postHeight) * 0.5
-                
-                var matrix = CGAffineTransform(translationX: (transX / xRatio), y: (transY / yRatio))
-                matrix = matrix.scaledBy(x: ratio, y: ratio)
-                transform = transform.concatenating(matrix)
                 
                 // make the composition
                 
@@ -551,6 +519,8 @@ extension NextLevelSessionExporter {
                 compositionInstruction.timeRange = CMTimeRange(start: CMTime.zero, duration: asset.duration)
                 
                 let layerInstruction = AVMutableVideoCompositionLayerInstruction(assetTrack: videoTrack)
+                
+                let transform = Self.transform(for: videoTrack, targetSize: targetSize, center: true)
                 layerInstruction.setTransform(transform, at: CMTime.zero)
                 
                 compositionInstruction.layerInstructions = [layerInstruction]
@@ -560,6 +530,51 @@ extension NextLevelSessionExporter {
         }
         
         return videoComposition
+    }
+    
+    public static func transform(for videoTrack: AVAssetTrack, targetSize: CGSize, center: Bool) -> CGAffineTransform {
+        
+        var naturalSize = videoTrack.naturalSize
+        
+        var transform = videoTrack.preferredTransform
+        
+        let rect = CGRect(x: 0, y: 0, width: naturalSize.width, height: naturalSize.height)
+        let transformedRect = rect.applying(transform)
+        // transformedRect should have origin at 0 if correct; otherwise add offset to correct it
+        transform.tx -= transformedRect.origin.x
+        transform.ty -= transformedRect.origin.y;
+        
+        
+        let videoAngleInDegrees = atan2(transform.b, transform.a) * 180 / .pi
+        if videoAngleInDegrees == 90 || videoAngleInDegrees == -90 {
+            let tempWidth = naturalSize.width
+            naturalSize.width = naturalSize.height
+            naturalSize.height = tempWidth
+        }
+        
+        // center the video
+        
+        var ratio: CGFloat = 0
+        let xRatio: CGFloat = targetSize.width / naturalSize.width
+        let yRatio: CGFloat = targetSize.height / naturalSize.height
+        ratio = max(xRatio, yRatio)
+        
+        let postWidth = naturalSize.width * ratio
+        let postHeight = naturalSize.height * ratio
+        let transX = (targetSize.width - postWidth) * 0.5
+        let transY = (targetSize.height - postHeight) * 0.5
+        
+        let matrix: CGAffineTransform
+        if center {
+            let centerMatrix = CGAffineTransform(translationX: (transX / xRatio), y: (transY / yRatio))
+            matrix = centerMatrix.scaledBy(x: ratio, y: ratio)
+        } else {
+            matrix = CGAffineTransform(scaleX: ratio, y: ratio)
+        }
+        
+        transform = transform.concatenating(matrix)
+        
+        return transform
     }
     
     internal func updateProgress(progress: Float) {
