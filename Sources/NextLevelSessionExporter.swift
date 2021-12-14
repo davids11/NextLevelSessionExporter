@@ -566,7 +566,7 @@ extension NextLevelSessionExporter {
         
         let matrix: CGAffineTransform
         if center {
-            let centerMatrix = CGAffineTransform(translationX: (transX / xRatio), y: (transY / yRatio))
+            let centerMatrix = CGAffineTransform(translationX: transX, y: transY)
             matrix = centerMatrix.scaledBy(x: ratio, y: ratio)
         } else {
             matrix = CGAffineTransform(scaleX: ratio, y: ratio)
